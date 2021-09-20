@@ -60,7 +60,7 @@ namespace Banan
 		if (file.fail())
 			return false;
 
-		int32_t file_size = uint32_t(file.tellg());
+		uint32_t file_size = uint32_t(file.tellg());
 		file.seekg(std::ios::beg);
 
 
@@ -93,6 +93,7 @@ namespace Banan
 
 		int32_t header_size;
 		file.read((char*)&header_size, 4);
+		file.seekg(-4, std::ios::cur);
 
 		int16_t bits_per_pixel;
 
@@ -103,7 +104,7 @@ namespace Banan
 			{
 				// Read DIB header
 				DIB_HEADER_12 dib;
-				file.read((char*)&dib + 4, sizeof(DIB_HEADER_12) - 4);
+				file.read((char*)&dib, sizeof(DIB_HEADER_12));
 				
 				// Assing needed variables
 				m_width = dib.width;
@@ -118,7 +119,7 @@ namespace Banan
 			{
 				// Read DIB header
 				DIB_HEADER_40 dib;
-				file.read((char*)&dib + 4, sizeof(DIB_HEADER_40) - 4);
+				file.read((char*)&dib, sizeof(DIB_HEADER_40));
 
 				// Check for compression (not supported)
 				if (dib.compression != 0)
@@ -168,7 +169,7 @@ namespace Banan
 		double scale = 1.0 / 255.0;
 		uint32_t image_index = 0;
 
-		m_data = new vec3d[int64_t(m_width) * int64_t(m_height)];
+		m_data = new double[3 * int64_t(m_width) * int64_t(m_height)];
 
 		// Loop for pixelarray's y values
 		for (int32_t y = start; y != end; y += step)
@@ -180,21 +181,25 @@ namespace Banan
 			uint32_t byte_index = 0;
 			for (int32_t x = 0; x < m_width; x++)
 			{
+#pragma warning(push)
+#pragma warning(disable: 6385)
 				// Read RGB values from file
 				uint8_t b = row[byte_index++];
 				uint8_t g = row[byte_index++];
 				uint8_t r = row[byte_index++];
 				if (bits_per_pixel == 32)
 					byte_index += 1;
-
+#pragma warning(pop)
 
 
 				// Initialize data in pixelarray
-				At(x, y) = vec3d(
+				double color[] {
 					double(r) * scale,
 					double(g) * scale,
 					double(b) * scale
-				);
+				};
+				Set(x, y, color);
+
 				image_index++;
 			}
 
@@ -244,12 +249,13 @@ namespace Banan
 			for (int32_t i = 0; i < m_width; i++)
 			{
 				// Write and transform colors from [0, 1] to [0, 255] (1 byte each)
-				const vec3d& color = At(i, j);
+				double color[3];
+				At(i, j, color);
 
 				uint8_t buffer[3];
-				buffer[0] = uint8_t(256.0 * std::clamp(color.b, 0.0, 0.999));
-				buffer[1] = uint8_t(256.0 * std::clamp(color.g, 0.0, 0.999));
-				buffer[2] = uint8_t(256.0 * std::clamp(color.r, 0.0, 0.999));
+				buffer[0] = uint8_t(256.0 * std::clamp(color[2], 0.0, 0.999));
+				buffer[1] = uint8_t(256.0 * std::clamp(color[1], 0.0, 0.999));
+				buffer[2] = uint8_t(256.0 * std::clamp(color[0], 0.0, 0.999));
 
 				file.write((char*)buffer, 3);
 			}

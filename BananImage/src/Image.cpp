@@ -29,7 +29,7 @@ namespace Banan
 	Image::Image(int32_t width, int32_t height) :
 		m_width(width),
 		m_height(height),
-		m_data(new vec3d[int64_t(width) * int64_t(height)])
+		m_data(new double[3 * int64_t(width) * int64_t(height)])
 	{ }
 
 	Image::Image(std::string_view path, ImageFormat format)
@@ -37,19 +37,25 @@ namespace Banan
 		Load(path, format);
 	}
 
-	//Image::~Image()
-	//{
-	//	delete[] m_data;
-	//}
-
-	vec3d& Image::At(int32_t x, int32_t y)
+	Image::~Image()
 	{
-		return m_data[y * m_width + x];
+		delete[] m_data;
 	}
 
-	const vec3d& Image::At(int32_t x, int32_t y) const
+	void Image::At(int32_t x, int32_t y, void* out) const
 	{
-		return m_data[y * m_width + x];
+		double* pos = m_data + 3 * (int64_t(y) * int64_t(m_width) + int64_t(x));
+		((double*)out)[0] = pos[0];
+		((double*)out)[1] = pos[1];
+		((double*)out)[2] = pos[2];
+	}
+
+	void Image::Set(int32_t x, int32_t y, void* val)
+	{
+		double* pos = m_data + 3 * (int64_t(y) * int64_t(m_width) + int64_t(x));
+		pos[0] = ((double*)val)[0];
+		pos[1] = ((double*)val)[1];
+		pos[2] = ((double*)val)[2];
 	}
 
 	bool Image::Load(std::string_view path, ImageFormat format)
@@ -65,14 +71,13 @@ namespace Banan
 
 			// Call 'Load' function for specified image format
 			case Banan::ImageFormat::BMP:
-				if (!LoadBMP(path))
-					throw;
+				return LoadBMP(path);
 		}
 
 		return true;
 	}
 
-	bool Image::Save(std::string_view path, ImageFormat format)
+	bool Image::Save(std::string_view path, ImageFormat format) const
 	{
 		switch (format)
 		{
@@ -85,8 +90,7 @@ namespace Banan
 
 			// Call 'Save' function for specified image format
 			case Banan::ImageFormat::BMP:
-				if (!SaveBMP(path))
-					throw;
+				return SaveBMP(path);
 		}
 	}
 
