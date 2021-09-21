@@ -17,7 +17,11 @@ namespace Banan
 		Image();
 		Image(int32_t width, int32_t height);
 		Image(std::string_view path, ImageFormat format = ImageFormat::None);
+		Image(Image&& other) noexcept;
+		Image(const Image& other);
 		~Image();
+
+		void Resize(int32_t width, int32_t height);
 
 		bool Load(std::string_view path, ImageFormat format = ImageFormat::None);
 		bool Save(std::string_view path, ImageFormat format = ImageFormat::None) const;
@@ -29,12 +33,13 @@ namespace Banan
 		int32_t Height() const { return m_height; }
 
 	private:
-		bool LoadBMP(std::string_view path);
-		bool SaveBMP(std::string_view path) const;
+		struct color
+		{
+			double r, g, b;
+		};
 
-	private:
 		int32_t		m_width, m_height;
-		double*		m_data;
+		color*		m_data;
 	};
 
 	static void OpenImage(std::string path)

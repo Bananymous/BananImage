@@ -1,10 +1,14 @@
 #include "Image.h"
 
+#include "BMP.h"
+
 #include <unordered_map>
+
+#pragma warning(push)
+#pragma warning(disable: 26451)
 
 namespace Banan
 {
-	
 	// File extensions
 	static std::unordered_map<std::string_view, ImageFormat> formats({
 		{ "bmp", ImageFormat::BMP }
@@ -29,7 +33,7 @@ namespace Banan
 	Image::Image(int32_t width, int32_t height) :
 		m_width(width),
 		m_height(height),
-		m_data(new double[3 * int64_t(width) * int64_t(height)])
+		m_data(new color[int64_t(width) * int64_t(height)])
 	{ }
 
 	Image::Image(std::string_view path, ImageFormat format)
@@ -37,25 +41,53 @@ namespace Banan
 		Load(path, format);
 	}
 
+	Image::Image(Image&& other) noexcept
+	{
+		m_data		= other.m_data;
+		m_width		= other.m_width;
+		m_height	= other.m_height;
+
+		other.m_data	= nullptr;
+		other.m_width	= 0;
+		other.m_height	= 0;
+
+		printf("moved\n");
+	}
+
+	Image::Image(const Image& other)
+	{
+		m_width = other.m_width;
+		m_height = other.m_height;
+
+		m_data = new color[m_width, m_height];
+		std::memcpy(m_data, other.m_data, 3 * m_width * m_height * sizeof(double));
+
+		printf("copied\n");
+	}
+
 	Image::~Image()
 	{
 		delete[] m_data;
 	}
 
+	void Image::Resize(int32_t width, int32_t height)
+	{
+		delete[] m_data;
+		m_data		= new color[width * height];
+		m_width		= width;
+		m_height	= height;
+	}
+
 	void Image::At(int32_t x, int32_t y, void* out) const
 	{
-		double* pos = m_data + 3 * (int64_t(y) * int64_t(m_width) + int64_t(x));
-		((double*)out)[0] = pos[0];
-		((double*)out)[1] = pos[1];
-		((double*)out)[2] = pos[2];
+		void* pos = m_data + y * m_width + x;
+		std::memcpy(out, pos, 3 * sizeof(double));
 	}
 
 	void Image::Set(int32_t x, int32_t y, void* val)
 	{
-		double* pos = m_data + 3 * (int64_t(y) * int64_t(m_width) + int64_t(x));
-		pos[0] = ((double*)val)[0];
-		pos[1] = ((double*)val)[1];
-		pos[2] = ((double*)val)[2];
+		void* pos = m_data + y * m_width + x;
+		std::memcpy(pos, val, 3 * sizeof(double));
 	}
 
 	bool Image::Load(std::string_view path, ImageFormat format)
@@ -63,15 +95,15 @@ namespace Banan
 		switch (format)
 		{
 			// Try to determine format of the file
-			case Banan::ImageFormat::None:
+			case ImageFormat::None:
 				format = GetFormat(path);
 				if (format == ImageFormat::None)
 					return false;
 				return Image::Load(path, format);
 
 			// Call 'Load' function for specified image format
-			case Banan::ImageFormat::BMP:
-				return LoadBMP(path);
+			case ImageFormat::BMP:
+				return Banan::LoadBMP(path, *this);
 		}
 
 		return true;
@@ -82,16 +114,18 @@ namespace Banan
 		switch (format)
 		{
 			// Try to determine format of the file
-			case Banan::ImageFormat::None:
+			case ImageFormat::None:
 				format = GetFormat(path);
 				if (format == ImageFormat::None)
 					return false;
-				return Image::Save(path, format);
+				return Save(path, format);
 
 			// Call 'Save' function for specified image format
-			case Banan::ImageFormat::BMP:
-				return SaveBMP(path);
+			case ImageFormat::BMP:
+				return Banan::SaveBMP(path, *this);
 		}
 	}
 
 }
+
+#pragma warning(pop)
