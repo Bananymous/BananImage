@@ -17,8 +17,6 @@ namespace Banan
 		Image();
 		Image(int32_t width, int32_t height);
 		Image(std::string_view path, ImageFormat format = ImageFormat::None);
-		Image(Image&& other) noexcept;
-		Image(const Image& other);
 		~Image();
 
 		void Resize(int32_t width, int32_t height);

@@ -41,30 +41,6 @@ namespace Banan
 		Load(path, format);
 	}
 
-	Image::Image(Image&& other) noexcept
-	{
-		m_data		= other.m_data;
-		m_width		= other.m_width;
-		m_height	= other.m_height;
-
-		other.m_data	= nullptr;
-		other.m_width	= 0;
-		other.m_height	= 0;
-
-		printf("moved\n");
-	}
-
-	Image::Image(const Image& other)
-	{
-		m_width = other.m_width;
-		m_height = other.m_height;
-
-		m_data = new color[m_width, m_height];
-		std::memcpy(m_data, other.m_data, 3 * m_width * m_height * sizeof(double));
-
-		printf("copied\n");
-	}
-
 	Image::~Image()
 	{
 		delete[] m_data;
